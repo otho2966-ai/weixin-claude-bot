@@ -1,0 +1,16 @@
+node_modules/
+dist/
+*.js
+*.d.ts
+!src/vendor.d.ts
+
+# Local state files
+.weixin-claude-bot/
+.claude/sessions/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temp files
+wechat-temp/
