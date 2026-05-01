@@ -1,6 +1,5 @@
 node_modules/
 dist/
-*.js
 *.d.ts
 !src/vendor.d.ts
 
