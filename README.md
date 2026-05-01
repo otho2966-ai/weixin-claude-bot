@@ -77,23 +77,24 @@ npm run login
 
 ### 3. 配置环境变量
 
-设置 Claude Code 调用的 API（如使用 DeepSeek 的 Anthropic 兼容接口）：
+设置 Claude Code 调用的 API 密钥：
 
 ```bash
-set ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic
 set ANTHROPIC_API_KEY=sk-your-key-here
 ```
 
 或者复制 `.env.example` 为 `.env` 并填入配置。
 
-**可选环境变量：**
+**可选环境变量（覆盖 config.json 中的设置）：**
 
-| 变量 | 说明 | 默认值 |
+| 变量 | 说明 | 优先级 |
 |------|------|--------|
-| `CLAUDE_CODE_CLI` | Claude Code CLI.js 路径 | `config.json` 中的 `cli` 字段，或相对路径 |
-| `CLAUDE_CODE_CWD` | Claude Code 工作目录 | `config.json` 中的 `cwd` 字段，或当前目录 |
-| `TESSDATA_PREFIX` | Tesseract OCR 语言包目录 | `<bot-dir>/tessdata` |
-| `CLAUDE_CODE_GIT_BASH_PATH` | Git Bash 路径 | 自动检测常见安装位置 |
+| `CLAUDE_CODE_CLI` | Claude Code CLI.js 路径 | 环境变量 > config.json > 默认 |
+| `CLAUDE_CODE_CWD` | Claude Code 工作目录 | 环境变量 > config.json > 当前目录 |
+| `CLAUDE_CODE_GIT_BASH_PATH` | Git Bash 路径 | 环境变量 > config.json > 自动检测 |
+| `TESSERACT_PATH` | Tesseract OCR 可执行文件 | 环境变量 > config.json > 默认路径 |
+| `TESSDATA_PREFIX` | Tesseract 语言包目录 | 环境变量 > config.json > bot 内置目录 |
+| `ANTHROPIC_BASE_URL` | API 地址 | 环境变量 > config.json > 内置默认 |
 
 ### 4. 启动 Bot
 
@@ -125,28 +126,47 @@ start-all.bat
 | 文件 | 内容 |
 |------|------|
 | `credentials.json` | 微信登录凭证 |
-| `config.json` | Bot 配置（模型、权限、工作目录、CLI路径） |
+| `config.json` | **Bot 配置（所有路径、模型等）** |
 | `.env` | 环境变量（API密钥、路径覆盖） |
+| `sync-buf.txt` | 消息游标（断点续传） |
+| `memories/*.md` | 用户长期记忆 |
 
-`config.json` 示例：
+### 配置方法
+
+1. 参考 `config.example.json` 创建你的配置
+2. 复制到 `~/.weixin-claude-bot/config.json`
+
+`config.json` 全部字段：
 
 ```json
 {
-  "model": "deepseek-v4-flash",
+  "model": "claude-sonnet-4-6",
   "maxTurns": 50,
   "cwd": "D:\\path\\to\\claude-code",
   "cli": "D:\\path\\to\\claude-code\\cli.js",
   "permissionMode": "bypassPermissions",
-  "multiTurn": true
+  "multiTurn": true,
+  "gitBashPath": "C:\\Program Files\\Git\\bin\\bash.exe",
+  "tesseractPath": "C:\\Program Files\\Tesseract-OCR\\tesseract.exe",
+  "tessdataPrefix": "",
+  "anthropicBaseUrl": "https://api.deepseek.com/anthropic"
 }
 ```
 
-如果 `cli` 字段未设置，自动回复脚本会按以下优先级查找 Claude Code：
-1. `CLAUDE_CODE_CLI` 环境变量
-2. `config.json` 中的 `cli` 字段
-3. 相对于本项目父目录的 `claude-code-combined/cli.js`
-| `sync-buf.txt` | 消息游标（断点续传） |
-| `memories/*.md` | 用户长期记忆 |
+| 字段 | 说明 |
+|------|------|
+| `model` | Claude Code 使用的模型 |
+| `maxTurns` | 每次消息的最大 Agent 轮次 |
+| `cwd` | Claude Code 的工作目录 |
+| `cli` | Claude Code 的 `cli.js` 路径 |
+| `permissionMode` | 权限模式 |
+| `multiTurn` | 是否启用多轮对话 |
+| `gitBashPath` | Git Bash 路径（Windows 必填） |
+| `tesseractPath` | Tesseract OCR 可执行文件路径 |
+| `tessdataPrefix` | Tesseract 语言包目录 |
+| `anthropicBaseUrl` | Anthropic 兼容 API 地址 |
+
+> 路径配置优先级：**环境变量 > config.json > 脚本内置默认值**
 
 ## API 端点 (Agent)
 

@@ -1,0 +1,13 @@
+{
+  "model": "claude-sonnet-4-6",
+  "maxTurns": 50,
+  "systemPrompt": "",
+  "cwd": "D:\path\to\claude-code",
+  "cli": "D:\path\to\claude-code\cli.js",
+  "permissionMode": "bypassPermissions",
+  "multiTurn": true,
+  "gitBashPath": "C:\Program Files\Git\bin\bash.exe",
+  "tesseractPath": "C:\Program Files\Tesseract-OCR\tesseract.exe",
+  "tessdataPrefix": "",
+  "anthropicBaseUrl": "https://api.deepseek.com/anthropic"
+}

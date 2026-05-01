@@ -7,6 +7,8 @@
  */
 import { spawn } from "node:child_process";
 import path from "node:path";
+import fs from "node:fs";
+import os from "node:os";
 import { fileURLToPath } from "node:url";
 import type { BotConfig } from "../store.js";
 import {
@@ -20,8 +22,12 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Set git-bash path for Windows Claude Code subprocess
-process.env.CLAUDE_CODE_GIT_BASH_PATH = "D:\\Program Files\\Git\\bin\\bash.exe";
+// ── Read config.json for portable paths ─────────────────────
+const _cfgPath = path.join(os.homedir(), ".weixin-claude-bot", "config.json");
+let _cfg: Record<string, any> = {};
+try { _cfg = JSON.parse(fs.readFileSync(_cfgPath, "utf-8")); } catch(e) {}
+
+process.env.CLAUDE_CODE_GIT_BASH_PATH = process.env.CLAUDE_CODE_GIT_BASH_PATH || (_cfg.gitBashPath || "");
 process.env.CLAUDE_CODE_SIMPLE = "1";               // 简化模式，减少内部逻辑
 process.env.CLAUDE_CODE_DISABLE_AUTO_MEMORY = "1";   // 禁用自动记忆
 
@@ -38,8 +44,8 @@ export type ClaudeOptions = Pick<Required<BotConfig>, "model" | "maxTurns" | "sy
   userId?: string;
 };
 
-/** Path to claude.js executable */
-const CLAUDE_CLI_PATH = path.resolve(
+/** Path to claude.js executable: env var → config.json → relative fallback */
+const CLAUDE_CLI_PATH = process.env.CLAUDE_CODE_CLI || _cfg.cli || path.resolve(
   import.meta.dirname ?? __dirname,
   "..", "..", "..", "claude-code-combined", "cli.js",
 );
@@ -114,9 +120,9 @@ export async function askClaude(prompt: string, opts: ClaudeOptions): Promise<Cl
       env: {
         ...process.env,
         // 确保代理环境变量被传递
-        ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL,
+        ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL || _cfg.anthropicBaseUrl || "https://api.deepseek.com/anthropic",
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
-        CLAUDE_CODE_GIT_BASH_PATH: "D:\\Program Files\\Git\\bin\\bash.exe",
+        CLAUDE_CODE_GIT_BASH_PATH: process.env.CLAUDE_CODE_GIT_BASH_PATH || (_cfg.gitBashPath || ""),
         CLAUDE_CODE_SIMPLE: "1",
         CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1",
         // 禁用沙箱（你的代理环境无需沙箱）

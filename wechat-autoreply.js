@@ -17,6 +17,9 @@ try { cfg = JSON.parse(fs.readFileSync(CFG_PATH, "utf-8")); } catch(e) {}
 
 var CLI = process.env.CLAUDE_CODE_CLI || cfg.cli || path.join(SCRIPT_DIR, "..", "claude-code-combined", "cli.js");
 var CWD = process.env.CLAUDE_CODE_CWD || cfg.cwd || process.cwd();
+var MODEL = cfg.model || "claude-sonnet-4-6";
+var MAX_TURNS = cfg.maxTurns || 50;
+var PERMISSION_MODE = cfg.permissionMode || "bypassPermissions";
 var MEMORIES_DIR = os.homedir() + "/.weixin-claude-bot/memories";
 
 var BS = String.fromCharCode(92); // backslash (defined early for TESSERACT path below)
@@ -126,8 +129,8 @@ async function downloadImage(url) {
 
 // ── OCR via Tesseract ──────────────────────────────────────────────
 
-var TESSERACT = process.env.TESSERACT_PATH || "C:" + BS + "Program Files" + BS + "Tesseract-OCR" + BS + "tesseract.exe";
-var TESS_DATA = process.env.TESSDATA_PREFIX || SCRIPT_DIR + BS + "tessdata";
+var TESSERACT = process.env.TESSERACT_PATH || cfg.tesseractPath || "C:" + BS + "Program Files" + BS + "Tesseract-OCR" + BS + "tesseract.exe";
+var TESS_DATA = process.env.TESSDATA_PREFIX || cfg.tessdataPrefix || SCRIPT_DIR + BS + "tessdata";
 
 function ocrImage(imagePath) {
   return new Promise(function(resolve) {
@@ -156,9 +159,10 @@ function ocrImage(imagePath) {
 
 // ── Claude Code call with memory and session ───────────────────────
 
-/** Auto-detect Git Bash path: env var → common install locations */
+/** Auto-detect Git Bash path: env var → config.json → common install locations */
 function findGitBash() {
   if (process.env.CLAUDE_CODE_GIT_BASH_PATH) return process.env.CLAUDE_CODE_GIT_BASH_PATH;
+  if (cfg.gitBashPath) return cfg.gitBashPath;
   var B = String.fromCharCode(92);
   var candidates = [
     "C:" + B + "Program Files" + B + "Git" + B + "bin" + B + "bash.exe",
@@ -179,16 +183,16 @@ function askClaude(userMsg, uid, sid) {
       fullPrompt = memPrompt.trim() + "\n\n" + userMsg;
     }
 
-    var args = [CLI, "-p", "--model", "deepseek-v4-flash", "--max-turns", "50", "--permission-mode", "bypassPermissions"];
+    var args = [CLI, "-p", "--model", MODEL, "--max-turns", String(MAX_TURNS), "--permission-mode", PERMISSION_MODE];
     if (sid) { args.push("--session-id", sid); }
 
     var child = spawn("node", args, {
       cwd: CWD,
       stdio: ["pipe", "pipe", "pipe"],
       env: Object.assign({}, process.env, {
-        ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL,
+        ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL || cfg.anthropicBaseUrl || "https://api.deepseek.com/anthropic",
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
-        CLAUDE_CODE_GIT_BASH_PATH: findGitBash() || process.env.CLAUDE_CODE_GIT_BASH_PATH || "",
+        CLAUDE_CODE_GIT_BASH_PATH: findGitBash(),
         CLAUDE_CODE_SIMPLE: "1",
         CLAUDE_CODE_DISABLE_SANDBOX: "1",
       }),
