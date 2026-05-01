@@ -56,11 +56,43 @@
 ### 1. 克隆项目
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/otho2966-ai/weixin-claude-bot.git
 cd weixin-claude-bot
 ```
 
-### 2. 登录微信 Bot
+### 2. 配置 config.json（关键步骤）
+
+⚠️ **项目目录下没有 `config.json`！** 所有配置（模型、路径、API 地址等）都存储在系统用户目录下：
+
+```
+~/.weixin-claude-bot/config.json
+```
+
+复制示例文件并编辑：
+
+```bash
+# 创建配置目录
+mkdir -p ~/.weixin-claude-bot
+
+# 复制示例配置
+cp config.example.json ~/.weixin-claude-bot/config.json
+
+# 编辑配置（根据你的环境修改路径和模型）
+notepad ~/.weixin-claude-bot/config.json
+```
+
+**必须修改的字段：**
+
+| 字段 | 你的值示例 | 说明 |
+|------|-----------|------|
+| `cli` | `D:\claude-code\cli.js` | Claude Code 的 cli.js 路径 |
+| `cwd` | `D:\claude-code` | Claude Code 工作目录 |
+| `model` | `deepseek-v4-flash` | 使用的模型 |
+| `gitBashPath` | `C:\Program Files\Git\bin\bash.exe` | Git Bash 路径（Windows 必填） |
+
+详细字段说明见下方的[配置文件](#配置文件)章节。
+
+### 3. 登录微信 Bot
 
 ```bash
 login.bat
@@ -75,17 +107,15 @@ npm run login
 
 终端显示二维码，用微信扫码并确认。登录凭证保存在 `~/.weixin-claude-bot/credentials.json`。
 
-### 3. 配置环境变量
+### 4. 配置环境变量（可选）
 
-设置 Claude Code 调用的 API 密钥：
+设置 API 密钥，或复制 `.env.example` 为 `.env` 并填入配置：
 
 ```bash
 set ANTHROPIC_API_KEY=sk-your-key-here
 ```
 
-或者复制 `.env.example` 为 `.env` 并填入配置。
-
-**可选环境变量（覆盖 config.json 中的设置）：**
+环境变量可覆盖 `config.json` 中的设置：
 
 | 变量 | 说明 | 优先级 |
 |------|------|--------|
@@ -96,7 +126,7 @@ set ANTHROPIC_API_KEY=sk-your-key-here
 | `TESSDATA_PREFIX` | Tesseract 语言包目录 | 环境变量 > config.json > bot 内置目录 |
 | `ANTHROPIC_BASE_URL` | API 地址 | 环境变量 > config.json > 内置默认 |
 
-### 4. 启动 Bot
+### 5. 启动 Bot
 
 ```bash
 start-all.bat
@@ -106,7 +136,7 @@ start-all.bat
 - **WeChat Agent** — HTTP 服务 (localhost:3456)
 - **Auto-Reply** — 自动回复守护进程
 
-### 5. 发消息测试
+### 6. 发消息测试
 
 在微信上给 Bot 发消息，即可收到 Claude Code 的回复。
 
