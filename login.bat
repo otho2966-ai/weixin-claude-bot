@@ -3,7 +3,7 @@ chcp 65001 >nul
 title WeChat Claude Bot - Login
 setlocal enabledelayedexpansion
 
-cd /d D:\code\weixin-claude-bot
+cd /d %~dp0
 
 echo ============================================
 echo  WeChat Claude Bot - Login Setup

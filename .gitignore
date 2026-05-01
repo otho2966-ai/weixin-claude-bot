@@ -11,5 +11,8 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Env files (secrets)
+.env
+
 # Temp files
 wechat-temp/

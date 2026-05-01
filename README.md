@@ -84,6 +84,17 @@ set ANTHROPIC_BASE_URL=https://api.deepseek.com/anthropic
 set ANTHROPIC_API_KEY=sk-your-key-here
 ```
 
+或者复制 `.env.example` 为 `.env` 并填入配置。
+
+**可选环境变量：**
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `CLAUDE_CODE_CLI` | Claude Code CLI.js 路径 | `config.json` 中的 `cli` 字段，或相对路径 |
+| `CLAUDE_CODE_CWD` | Claude Code 工作目录 | `config.json` 中的 `cwd` 字段，或当前目录 |
+| `TESSDATA_PREFIX` | Tesseract OCR 语言包目录 | `<bot-dir>/tessdata` |
+| `CLAUDE_CODE_GIT_BASH_PATH` | Git Bash 路径 | 自动检测常见安装位置 |
+
 ### 4. 启动 Bot
 
 ```bash
@@ -114,7 +125,26 @@ start-all.bat
 | 文件 | 内容 |
 |------|------|
 | `credentials.json` | 微信登录凭证 |
-| `config.json` | Bot 配置（模型、权限、工作目录） |
+| `config.json` | Bot 配置（模型、权限、工作目录、CLI路径） |
+| `.env` | 环境变量（API密钥、路径覆盖） |
+
+`config.json` 示例：
+
+```json
+{
+  "model": "deepseek-v4-flash",
+  "maxTurns": 50,
+  "cwd": "D:\\path\\to\\claude-code",
+  "cli": "D:\\path\\to\\claude-code\\cli.js",
+  "permissionMode": "bypassPermissions",
+  "multiTurn": true
+}
+```
+
+如果 `cli` 字段未设置，自动回复脚本会按以下优先级查找 Claude Code：
+1. `CLAUDE_CODE_CLI` 环境变量
+2. `config.json` 中的 `cli` 字段
+3. 相对于本项目父目录的 `claude-code-combined/cli.js`
 | `sync-buf.txt` | 消息游标（断点续传） |
 | `memories/*.md` | 用户长期记忆 |
 

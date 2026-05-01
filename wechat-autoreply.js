@@ -4,10 +4,23 @@ import path from "node:path";
 import os from "node:os";
 import crypto from "node:crypto";
 import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
-var CLI = "D:/code/claude-code-combined/cli.js";
-var CWD = "D:/code/claude-code-combined";
+var SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+
+// ── Portable configuration ─────────────────────────────────
+// Priority: environment variable → config.json → fallback default
+
+var CFG_PATH = os.homedir() + "/.weixin-claude-bot/config.json";
+var cfg = {};
+try { cfg = JSON.parse(fs.readFileSync(CFG_PATH, "utf-8")); } catch(e) {}
+
+var CLI = process.env.CLAUDE_CODE_CLI || cfg.cli || path.join(SCRIPT_DIR, "..", "claude-code-combined", "cli.js");
+var CWD = process.env.CLAUDE_CODE_CWD || cfg.cwd || process.cwd();
 var MEMORIES_DIR = os.homedir() + "/.weixin-claude-bot/memories";
+
+var BS = String.fromCharCode(92); // backslash (defined early for TESSERACT path below)
+var NL = String.fromCharCode(10); // newline
 
 // ── Memory system (per-user long-term memory) ──────────────────────
 
@@ -113,8 +126,8 @@ async function downloadImage(url) {
 
 // ── OCR via Tesseract ──────────────────────────────────────────────
 
-var TESSERACT = "C:" + BS + "Program Files" + BS + "Tesseract-OCR" + BS + "tesseract.exe";
-var TESS_DATA = "D:" + BS + "code" + BS + "weixin-claude-bot" + BS + "tessdata";
+var TESSERACT = process.env.TESSERACT_PATH || "C:" + BS + "Program Files" + BS + "Tesseract-OCR" + BS + "tesseract.exe";
+var TESS_DATA = process.env.TESSDATA_PREFIX || SCRIPT_DIR + BS + "tessdata";
 
 function ocrImage(imagePath) {
   return new Promise(function(resolve) {
@@ -143,8 +156,19 @@ function ocrImage(imagePath) {
 
 // ── Claude Code call with memory and session ───────────────────────
 
-var BS = String.fromCharCode(92); // backslash
-var NL = String.fromCharCode(10); // newline
+/** Auto-detect Git Bash path: env var → common install locations */
+function findGitBash() {
+  if (process.env.CLAUDE_CODE_GIT_BASH_PATH) return process.env.CLAUDE_CODE_GIT_BASH_PATH;
+  var B = String.fromCharCode(92);
+  var candidates = [
+    "C:" + B + "Program Files" + B + "Git" + B + "bin" + B + "bash.exe",
+    "C:" + B + "Program Files (x86)" + B + "Git" + B + "bin" + B + "bash.exe",
+    "D:" + B + "Program Files" + B + "Git" + B + "bin" + B + "bash.exe",
+    "C:" + B + "ProgramData" + B + "scoop" + B + "apps" + B + "git" + B + "current" + B + "bin" + B + "bash.exe",
+  ];
+  for (var p of candidates) { if (fs.existsSync(p)) return p; }
+  return ""; // fallback: let Claude Code find it
+}
 
 function askClaude(userMsg, uid, sid) {
   return new Promise(function(resolve, reject) {
@@ -156,7 +180,7 @@ function askClaude(userMsg, uid, sid) {
     }
 
     var args = [CLI, "-p", "--model", "deepseek-v4-flash", "--max-turns", "50", "--permission-mode", "bypassPermissions"];
-    if (sid) { args.push("--resume", sid); }
+    if (sid) { args.push("--session-id", sid); }
 
     var child = spawn("node", args, {
       cwd: CWD,
@@ -164,7 +188,7 @@ function askClaude(userMsg, uid, sid) {
       env: Object.assign({}, process.env, {
         ANTHROPIC_BASE_URL: process.env.ANTHROPIC_BASE_URL,
         ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
-        CLAUDE_CODE_GIT_BASH_PATH: "D:" + BS + "Program Files" + BS + "Git" + BS + "bin" + BS + "bash.exe",
+        CLAUDE_CODE_GIT_BASH_PATH: findGitBash() || process.env.CLAUDE_CODE_GIT_BASH_PATH || "",
         CLAUDE_CODE_SIMPLE: "1",
         CLAUDE_CODE_DISABLE_SANDBOX: "1",
       }),
@@ -173,24 +197,12 @@ function askClaude(userMsg, uid, sid) {
 
     var so = "";
     var se = "";
-    var newSid = null;
 
-    child.stdout.on("data", function(d) {
-      var s = d.toString();
-      so += s;
-      // Try to extract session ID from output footer
-      // Claude Code may print "Session: <id>" or similar at the end
-      var m = s.match(/Session[:\s]+([a-f0-9\-]{20,})/i);
-      if (m) newSid = m[1];
-    });
-
+    child.stdout.on("data", function(d) { so += d.toString(); });
     child.stderr.on("data", function(d) { se += d; });
 
     child.on("close", function(code) {
       var t = so.trim();
-
-      // Save new session ID for next call
-      if (newSid) { saveSid(newSid); }
 
       if (code === 0 && t) {
         // Process memory updates
@@ -218,7 +230,11 @@ function askClaude(userMsg, uid, sid) {
 async function main() {
   console.log("[autoreply] Starting...");
   var sid = loadSid();
-  console.log("[autoreply] Session: " + (sid || "(new)"));
+  if (!sid) {
+    sid = crypto.randomUUID();
+    saveSid(sid);
+  }
+  console.log("[autoreply] Session: " + sid);
 
   // Get LAN IP for upload URL
   var LAN_IP = "localhost";
@@ -286,11 +302,9 @@ async function main() {
 
           // Pass userId for memory, session ID for continuity
           var resp = await askClaude(prompt, msg.from, sid);
-          // Update sid from what was saved by askClaude
-          sid = loadSid();
           console.log("[autoreply] <<< " + resp.slice(0, 100).replace(/\n/g, " "));
           await sendReply(msg.from, resp);
-          console.log("[autoreply] Sent OK (sid=" + (sid || "none") + ")");
+          console.log("[autoreply] Sent OK (sid=" + sid + ")");
         } catch (err) {
           console.error("[autoreply] Error: " + err.message);
           try { await sendReply(msg.from, "处理出错: " + err.message.slice(0, 100)); } catch(e) {}

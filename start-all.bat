@@ -2,7 +2,7 @@
 chcp 65001 >nul
 title WeChat Claude Bot - All Services
 
-cd /d D:\code\weixin-claude-bot
+cd /d %~dp0
 
 echo ==============================================
 echo  WeChat Claude Bot - One-Click Start
@@ -20,10 +20,10 @@ if "%ANTHROPIC_API_KEY%"=="" (
 echo.
 
 echo [1/3] Starting WeChat Agent...
-start "WeChat Agent" cmd /c "chcp 65001 >nul ^&^& title WeChat Agent ^&^& cd /d D:\code\weixin-claude-bot ^&^& node wechat-agent.js"
+start "WeChat Agent" cmd /c "chcp 65001 >nul ^&^& title WeChat Agent ^&^& cd /d %~dp0 ^&^& node wechat-agent.js"
 timeout /t 3 /nobreak >nul
 echo [2/3] Starting Auto-Reply...
-start "Auto-Reply" cmd /c "chcp 65001 >nul ^&^& title Auto-Reply ^&^& cd /d D:\code\weixin-claude-bot ^&^& set ANTHROPIC_BASE_URL=%ANTHROPIC_BASE_URL% ^&^& set ANTHROPIC_API_KEY=%ANTHROPIC_API_KEY% ^&^& node wechat-autoreply.js"
+start "Auto-Reply" cmd /c "chcp 65001 >nul ^&^& title Auto-Reply ^&^& cd /d %~dp0 ^&^& set ANTHROPIC_BASE_URL=%ANTHROPIC_BASE_URL% ^&^& set ANTHROPIC_API_KEY=%ANTHROPIC_API_KEY% ^&^& node wechat-autoreply.js"
 echo.
 echo [3/3] Both services started!
 echo.
